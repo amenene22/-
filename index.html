@@ -3,54 +3,52 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>もち麦ごはん逆算炊飯シミュレーター</title>
+    <!-- PWA用設定 -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#d97706">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="icon-192.png">
+    
+    <title>もち麦・雑穀ごはん黄金比逆算シミュレーター</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Font Awesome (for icons) -->
+    <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700;900&display=swap');
         body {
             font-family: 'Noto Sans JP', sans-serif;
-            background-color: #faf8f5;
+            background-color: #fcfbfa;
         }
-        /* スライダーの見た目カスタマイズ */
+        /* スライダーの挙動をなめらかに */
         input[type="range"]::-webkit-slider-thumb {
             -webkit-appearance: none;
             appearance: none;
-            width: 24px;
-            height: 24px;
+            width: 22px;
+            height: 22px;
             border-radius: 50%;
             background: #d97706;
             cursor: pointer;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
             border: 2px solid #ffffff;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.15);
         }
     </style>
-    <!-- PWA用の設定 -->
-    <link rel="manifest" href="./manifest.json">
-    <script>
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('./sw.js')
-                    .then(reg => console.log('Service Worker 登録成功☆', reg))
-                    .catch(err => console.log('登録失敗なの…', err));
-            });
-        }
-    </script>
 </head>
 <body class="min-h-screen flex flex-col justify-between text-slate-800">
 
     <!-- ヘッダー -->
-    <header class="bg-gradient-to-r from-amber-600 via-amber-500 to-yellow-500 text-white shadow-md">
+    <header class="bg-gradient-to-r from-amber-600 via-amber-500 to-amber-600 text-white shadow-md">
         <div class="max-w-md mx-auto px-5 py-4 flex items-center justify-between">
             <div class="flex items-center space-x-2">
-                <i class="fa-solid fa-calculator text-2xl"></i>
+                <i class="fa-solid fa-seedling text-2xl"></i>
                 <div>
-                    <h1 class="text-lg font-bold tracking-wider leading-none">もち麦ごはん逆算メーカー</h1>
+                    <h1 class="text-base font-black tracking-wider leading-none">麦・雑穀 炊飯マスター</h1>
+                    <p class="text-[9px] text-amber-100 mt-0.5">もち麦＆雑穀米の黄金水加減計算機</p>
                 </div>
             </div>
-            <span class="text-[11px] bg-white/20 px-2.5 py-1 rounded-full border border-white/20 font-medium">黄金比炊き対応</span>
+            <!-- PWAインストールステータス表示用（任意） -->
+            <span id="pwaBadge" class="text-[9px] bg-amber-700/40 px-2.5 py-1 rounded-full border border-amber-400/30 font-medium">PWA対応</span>
         </div>
     </header>
 
@@ -58,290 +56,461 @@
     <main class="flex-grow max-w-md w-full mx-auto px-4 py-5 space-y-5">
 
         <!-- 設定カード -->
-        <div class="bg-white rounded-2xl shadow-sm border border-orange-100 p-5 space-y-6">
+        <div class="bg-white rounded-2xl shadow-sm border border-amber-100/50 p-5 space-y-5">
             
             <!-- 目標の炊き上がり合数 -->
             <div class="space-y-3">
                 <div class="flex justify-between items-center">
                     <label class="font-bold text-slate-700 flex items-center gap-2 text-sm">
                         <span class="w-2 h-5 bg-amber-500 rounded-full inline-block"></span>
-                        ① 炊き上がりの目標量
+                        ① 炊き上がりの目標合数
                     </label>
-                    <div class="flex items-baseline space-x-1">
-                        <span class="text-xs text-slate-400 mr-1">約お茶碗 <span id="bowlCount" class="font-bold text-slate-600">--</span> 杯分</span>
-                        <input type="number" id="targetCupsInput" class="w-16 text-right font-black text-2xl text-amber-600 border-b-2 border-slate-200 focus:border-amber-500 outline-none px-1" value="3.0" step="0.1" min="0.5" max="10">
-                        <span class="text-sm text-slate-500 font-bold">合分</span>
+                    <div class="flex items-baseline space-x-0.5">
+                        <input type="number" id="targetCupsInput" class="w-14 text-right font-black text-2xl text-amber-600 border-b-2 border-slate-200 focus:border-amber-500 outline-none px-1" value="3.0" step="0.1" min="0.5" max="8">
+                        <span class="text-xs text-slate-500 font-bold">合分</span>
                     </div>
                 </div>
 
-                <!-- 合数選択レンジ -->
+                <!-- 3合、4合、5合の簡単タップ切り替えボタン -->
+                <div class="grid grid-cols-3 gap-2">
+                    <button id="quick3" onclick="setTargetCups(3.0)" class="py-2 px-3 rounded-xl border border-slate-200 text-xs font-bold transition-all text-slate-600 hover:bg-slate-50">
+                        <span class="block text-[9px] text-slate-400 font-normal">定番</span>
+                        3合で炊く
+                    </button>
+                    <button id="quick4" onclick="setTargetCups(4.0)" class="py-2 px-3 rounded-xl border border-slate-200 text-xs font-bold transition-all text-slate-600 hover:bg-slate-50">
+                        <span class="block text-[9px] text-slate-400 font-normal">多め</span>
+                        4合で炊く
+                    </button>
+                    <button id="quick5" onclick="setTargetCups(5.0)" class="py-2 px-3 rounded-xl border border-slate-200 text-xs font-bold transition-all text-slate-600 hover:bg-slate-50">
+                        <span class="block text-[9px] text-slate-400 font-normal">お釜いっぱい</span>
+                        5合で炊く
+                    </button>
+                </div>
+
+                <!-- スライダー調整 -->
                 <div class="relative pt-1">
-                    <input type="range" id="targetCupsRange" min="2.0" max="5.0" step="0.1" value="3.0" class="w-full h-2 bg-amber-100 rounded-lg appearance-none cursor-pointer accent-amber-600">
+                    <input type="range" id="targetCupsRange" min="1.0" max="6.0" step="0.1" value="3.0" class="w-full h-2 bg-amber-100 rounded-lg appearance-none cursor-pointer accent-amber-600">
                 </div>
                 <div class="flex justify-between text-[10px] text-slate-400 px-1">
-                    <span>2.0合 (少量)</span>
-                    <span>3.0合 (普通)</span>
-                    <span>4.0合 (多め)</span>
-                    <span>5.0合 (大容量)</span>
+                    <span>1.0合</span>
+                    <span>2.0合</span>
+                    <span class="font-bold text-amber-600">3.0合 (初期値)</span>
+                    <span>4.0合</span>
+                    <span>5.0合</span>
+                    <span>6.0合</span>
                 </div>
             </div>
 
-            <!-- もち麦の割合選択 -->
-            <div class="space-y-3 pt-2 border-t border-slate-100">
+            <!-- 穀物の種類選択タブ -->
+            <div class="space-y-3 pt-3 border-t border-slate-100">
                 <label class="font-bold text-slate-700 flex items-center gap-2 text-sm">
                     <span class="w-2 h-5 bg-emerald-500 rounded-full inline-block"></span>
-                    ② もち麦の配合割合
+                    ② ブレンドする穀物の種類
                 </label>
                 
-                <!-- プリセットタブ -->
-                <div class="grid grid-cols-3 gap-2 bg-slate-100 p-1 rounded-xl text-xs font-bold text-slate-500">
-                    <button id="btn15" onclick="setRatioPreset(1.5)" class="py-2.5 rounded-lg text-center transition-all">1.5割<span class="block text-[9px] font-normal text-slate-400">初心者・ほんのり</span></button>
-                    <button id="btn30" onclick="setRatioPreset(3.0)" class="py-2.5 rounded-lg text-center transition-all bg-white text-emerald-600 shadow-sm">3割 (定番)<span class="block text-[9px] font-normal text-emerald-400">一番おすすめ！</span></button>
-                    <button id="btn50" onclick="setRatioPreset(5.0)" class="py-2.5 rounded-lg text-center transition-all">5割<span class="block text-[9px] font-normal text-slate-400">食物繊維たっぷり</span></button>
+                <div class="grid grid-cols-3 gap-1 bg-slate-100 p-1 rounded-xl text-xs font-bold text-slate-600">
+                    <button id="typeBarley" onclick="setGrainType('barley')" class="py-2 rounded-lg text-center transition-all bg-white text-emerald-600 shadow-sm flex flex-col items-center border border-emerald-100">
+                        <span class="text-base">🌾</span>
+                        <span>もち麦</span>
+                    </button>
+                    <button id="typeZakkoku" onclick="setGrainType('zakkoku')" class="py-2 rounded-lg text-center transition-all flex flex-col items-center">
+                        <span class="text-base">🍂</span>
+                        <span>雑穀米</span>
+                    </button>
+                    <button id="typeMix" onclick="setGrainType('mix')" class="py-2 rounded-lg text-center transition-all flex flex-col items-center">
+                        <span class="text-base">🥗</span>
+                        <span>もち麦＋雑穀</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- 配合比率の設定 -->
+            <div class="space-y-3 pt-3 border-t border-slate-100">
+                <div class="flex justify-between items-center text-xs">
+                    <span class="font-bold text-slate-700" id="ratioTitle">配合割合の指定</span>
+                    <span class="font-black text-emerald-600" id="ratioValueLabel">3割ブレンド</span>
                 </div>
 
-                <!-- カスタム割合調整 (隠し/詳細用) -->
-                <div class="space-y-2 pt-1">
-                    <div class="flex justify-between items-center text-xs text-slate-500">
-                        <span>割合を細かく調整する</span>
-                        <span class="font-bold text-emerald-600" id="customRatioVal">3割ごはん</span>
+                <!-- 配合割合クイックプリセット -->
+                <div id="ratioPresetsContainer" class="grid grid-cols-3 gap-2">
+                    <!-- JavaScriptで動的生成されます -->
+                </div>
+
+                <!-- スライダーでの微調整 -->
+                <div class="space-y-1">
+                    <input type="range" id="ratioRange" min="0.5" max="6.0" step="0.5" value="3.0" class="w-full h-1.5 bg-emerald-100 rounded-lg appearance-none cursor-pointer accent-emerald-600">
+                    <div class="flex justify-between text-[9px] text-slate-400">
+                        <span>ひかえめ (0.5割)</span>
+                        <span>標準的 (3.0割)</span>
+                        <span>ぎっしり (6.0割)</span>
                     </div>
-                    <input type="range" id="ratioRange" min="1.0" max="8.0" step="0.5" value="3.0" class="w-full h-1.5 bg-emerald-100 rounded-lg appearance-none cursor-pointer accent-emerald-600">
                 </div>
             </div>
 
         </div>
 
-        <!-- 黄金比算出レシピ結果 -->
-        <div class="bg-gradient-to-br from-amber-950 to-slate-900 rounded-2xl shadow-xl p-5 text-white space-y-5 relative overflow-hidden">
-            <div class="absolute -right-6 -top-6 w-32 h-32 rounded-full bg-amber-500/10 pointer-events-none"></div>
+        <!-- 炊飯レシピ計算カード -->
+        <div class="bg-gradient-to-br from-amber-950 to-slate-900 rounded-3xl shadow-xl p-5 text-white space-y-5 relative overflow-hidden">
+            <div class="absolute -right-6 -top-6 w-36 h-36 rounded-full bg-amber-500/10 pointer-events-none"></div>
 
+            <!-- レシピヘッダー -->
             <div class="border-b border-white/10 pb-3 flex justify-between items-center">
                 <h2 class="font-bold text-amber-400 text-sm flex items-center gap-1.5">
-                    <i class="fa-solid fa-mortar-pestle"></i> 炊飯レシピ（逆算結果）
+                    <i class="fa-solid fa-list-check"></i> 黄金比炊飯レシピ
                 </h2>
-                <span class="text-[10px] text-slate-400 bg-white/5 px-2 py-0.5 rounded" id="recipeSummary">3割麦ごはん 2.0合分</span>
+                <span class="text-[10px] text-slate-300 bg-white/10 px-2.5 py-0.5 rounded-full" id="recipeModeLabel">もち麦ごはん 3.0合分</span>
             </div>
 
-            <!-- 計量結果3つの円形ゲージ風UI -->
-            <div class="grid grid-cols-3 gap-2.5 text-center">
-                <div class="bg-white/5 rounded-xl p-3 border border-white/10">
-                    <span class="text-[10px] text-amber-200/80 block mb-1">お米 (白米)</span>
-                    <div class="text-lg font-black text-white" id="resRiceG">-- <span class="text-xs font-normal">g</span></div>
-                    <span class="text-[9px] text-slate-400 block mt-1" id="resRiceCup">(-- 合)</span>
+            <!-- 計量結果グリッド -->
+            <div class="grid grid-cols-3 gap-2 text-center">
+                <div class="bg-white/5 rounded-2xl p-3 border border-white/10 flex flex-col justify-between">
+                    <span class="text-[10px] text-amber-200/80 block">① お米（白米）</span>
+                    <div class="text-xl font-black text-white py-1" id="outRiceG">-- <span class="text-xs font-normal">g</span></div>
+                    <span class="text-[9px] text-slate-400 block" id="outRiceCup">(-- 合)</span>
                 </div>
-                <div class="bg-white/5 rounded-xl p-3 border border-white/10">
-                    <span class="text-[10px] text-emerald-200/80 block mb-1">もち麦</span>
-                    <div class="text-lg font-black text-white" id="resBarleyG">-- <span class="text-xs font-normal">g</span></div>
-                    <span class="text-[9px] text-slate-400 block mt-1" id="resBarleySpoon">(大さじ --)</span>
+                <div class="bg-white/5 rounded-2xl p-3 border border-white/10 flex flex-col justify-between">
+                    <span class="text-[10px] text-emerald-200/80 block" id="outGrainTitle">② もち麦</span>
+                    <div class="text-xl font-black text-white py-1" id="outGrainG">-- <span class="text-xs font-normal">g</span></div>
+                    <span class="text-[9px] text-slate-400 block" id="outGrainMeasure">(-- 杯)</span>
                 </div>
-                <div class="bg-white/5 rounded-xl p-3 border border-white/10">
-                    <span class="text-[10px] text-blue-200/80 block mb-1">必要な水の総量</span>
-                    <div class="text-lg font-black text-white" id="resTotalWater">-- <span class="text-xs font-normal">ml</span></div>
-                    <span class="text-[9px] text-slate-400 block mt-1" id="resWaterDetail">釜 + 追加水</span>
+                <div class="bg-white/5 rounded-2xl p-3 border border-white/10 flex flex-col justify-between">
+                    <span class="text-[10px] text-blue-200/80 block">③ 水の総量</span>
+                    <div class="text-xl font-black text-white py-1" id="outTotalWater">-- <span class="text-xs font-normal">ml</span></div>
+                    <span class="text-[9px] text-slate-400 block" id="outWaterDetail">釜 + 追加水</span>
                 </div>
             </div>
 
-            <!-- 水加減の詳細解説 -->
-            <div class="bg-slate-800/80 rounded-xl p-3.5 space-y-2 text-xs border border-slate-700/50">
-                <div class="font-bold text-amber-400 flex items-center gap-1.5">
-                    <i class="fa-solid fa-droplet text-blue-400"></i>
-                    炊飯器の目盛りを使う場合
+            <!-- 炊飯器目盛りビジュアル＆手順 -->
+            <div class="bg-slate-800/90 rounded-2xl p-4 space-y-3.5 border border-slate-700/60 text-xs">
+                <div class="font-bold text-amber-400 flex items-center gap-1.5 pb-2 border-b border-slate-700/50">
+                    <i class="fa-solid fa-glass-water text-blue-400"></i>
+                    失敗しない炊飯器の目盛り調整法
                 </div>
-                <ol class="list-decimal list-inside space-y-1.5 text-slate-300">
-                    <li>
-                        研いだ白米を炊飯器に入れ、内釜の <strong class="text-white font-bold" id="gaugeRiceCup">--</strong> 合の目盛りまで通常通り水を入れます。
-                    </li>
-                    <li>
-                        そこにもち麦 <strong class="text-emerald-300 font-bold" id="gaugeBarleyG">-- g</strong> をそのまま加えます（※洗わなくてOK）。
-                    </li>
-                    <li>
-                        さらにもち麦用の水 <strong class="text-blue-300 font-bold" id="gaugeAddWater">-- ml</strong> を追加して、軽く混ぜてから炊飯します。
-                    </li>
-                </ol>
+                
+                <div class="flex items-center gap-4">
+                    <!-- 内釜グラフィック -->
+                    <div class="relative w-16 h-20 bg-slate-900 border-2 border-slate-600 rounded-b-2xl rounded-t-sm flex flex-col justify-end p-1 shrink-0 overflow-hidden">
+                        <div class="absolute inset-x-0 bottom-0 bg-blue-500/30 border-t-2 border-blue-400 transition-all duration-500" id="kettleWaterLevel" style="height: 60%;"></div>
+                        <div class="absolute inset-x-0 bottom-1/2 border-t border-dashed border-slate-700"></div>
+                        <span class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-[9px] font-bold text-white z-10 text-center leading-none" id="kettleLabel">白米<br>--合</span>
+                    </div>
+
+                    <!-- 手順説明 -->
+                    <div class="space-y-2 flex-grow text-slate-300">
+                        <p class="flex items-start gap-1">
+                            <span class="bg-amber-500/20 text-amber-300 font-bold rounded-full w-4 h-4 flex items-center justify-center shrink-0 mt-0.5">1</span>
+                            <span>白米を研いでお釜に入れ、内釜の <strong class="text-white font-black underline decoration-amber-400" id="step1Cup">--合</strong> の線まで通常通り水を張ります。</span>
+                        </p>
+                        <p class="flex items-start gap-1">
+                            <span class="bg-emerald-500/20 text-emerald-300 font-bold rounded-full w-4 h-4 flex items-center justify-center shrink-0 mt-0.5">2</span>
+                            <span>そこに、計量した穀物（洗わずそのまま）をすべて投入します。</span>
+                        </p>
+                        <p class="flex items-start gap-1">
+                            <span class="bg-blue-500/20 text-blue-300 font-bold rounded-full w-4 h-4 flex items-center justify-center shrink-0 mt-0.5">3</span>
+                            <span>仕上げに、計量カップで追加の水 <strong class="text-blue-300 font-black underline decoration-blue-400 text-sm" id="step3AddWater">-- ml</strong> を注ぎ、軽く混ぜて炊飯します。</span>
+                        </p>
+                    </div>
+                </div>
             </div>
 
-            <!-- スケールで一発計量する場合 -->
-            <div class="bg-white/5 rounded-xl p-3 text-xs space-y-1 text-slate-300">
-                <div class="font-bold text-white flex items-center gap-1.5 mb-1 text-[11px]">
-                    <i class="fa-solid fa-weight-scale"></i>
-                    キッチンスケールでまとめて計量する場合
+            <!-- キッチンスケール乗せおろしゼロリセットガイド -->
+            <div class="bg-white/5 rounded-2xl p-4 text-xs space-y-2.5">
+                <div class="font-bold text-white flex items-center gap-1.5 text-[11px]">
+                    <i class="fa-solid fa-weight-scale text-emerald-400"></i>
+                    キッチンスケール乗せおろしゼロリセットガイド
                 </div>
-                <p>
-                    ボウルや内釜に <strong class="text-amber-300 font-bold" id="scaleRice">-- g</strong> の米、<strong class="text-emerald-300 font-bold" id="scaleBarley">-- g</strong> のもち麦を入れ、全体の水の重さが <strong class="text-blue-300 font-bold" id="scaleWater">-- g (ml)</strong> になるように注いでください。
+                <p class="text-slate-400 text-[10px] leading-snug">
+                    スケールにお釜を置き、その都度「0g」にリセットしながら以下の順番で加えていくと、非常にスムーズに準備できます。
                 </p>
+                <div class="grid grid-cols-3 gap-2 text-center text-[11px] pt-1">
+                    <div class="bg-white/5 rounded-xl py-2 px-1 border border-white/5">
+                        <span class="text-slate-400 block text-[9px] mb-0.5">① お米を入れる</span>
+                        <span class="text-amber-300 font-bold" id="scaleStep1">-- g</span>
+                    </div>
+                    <div class="bg-white/5 rounded-xl py-2 px-1 border border-white/5">
+                        <span class="text-slate-400 block text-[9px] mb-0.5">② 穀物を加える</span>
+                        <span class="text-emerald-300 font-bold" id="scaleStep2">-- g</span>
+                    </div>
+                    <div class="bg-white/5 rounded-xl py-2 px-1 border border-white/5">
+                        <span class="text-slate-400 block text-[9px] mb-0.5">③ 水を注ぐ(総量)</span>
+                        <span class="text-blue-300 font-bold" id="scaleStep3">-- g</span>
+                    </div>
+                </div>
             </div>
+
         </div>
 
-        <!-- 豆知識・アドバイス -->
-        <div class="bg-amber-50 rounded-2xl p-4 border border-amber-100 flex items-start gap-3">
-            <span class="text-2xl mt-0.5">💡</span>
-            <div class="space-y-1 text-xs text-amber-900 leading-relaxed">
-                <p class="font-bold">アドバイス</p>
-                <p>もち麦ごはんを美味しく炊くコツは<strong>「吸水時間」</strong>です。麦は白米に比べて水分を吸うのに時間がかかるため、炊飯ボタンを押す前に<strong>約30分〜1時間</strong>浸水させておくと、芯が残らずふっくらプチプチ食感に炊き上がります！</p>
-            </div>
+        <!-- 動的豆知識・アドバイス -->
+        <div id="dynamicAdviceCard" class="rounded-2xl p-4 border flex items-start gap-3 transition-all duration-300">
+            <!-- JavaScriptで動的に装飾とテキストが入ります -->
         </div>
 
     </main>
 
     <!-- フッター -->
-    <footer class="bg-slate-100 border-t border-slate-200 py-4 text-center text-[11px] text-slate-400">
+    <footer class="bg-slate-100 border-t border-slate-200 py-4 text-center text-[10px] text-slate-400">
         <div class="max-w-md mx-auto px-4 space-y-1">
-            <p>※炊き上がり分量は目安です。お使いの炊飯器や米の品種によって微調整してください。</p>
+            <p>※炊き上がり時のご飯の硬さは、お好みで水分量を10ml〜30mlほど前後させて調整してください。</p>
             <p>※本シミュレーターは、株式会社はくばくの<a href="https://www.hakubaku.co.jp/omugi-lab/takikata/mochimugi/" target="_blank" rel="noopener noreferrer" style="color: blue;">「もち麦を使った炊き方」</a>の推奨比率を参考に作成しています。</p>
-            <p class="font-semibold text-slate-500">もち麦ごはん逆算シミュレーター</p>
+            <p class="font-semibold text-slate-500">もち麦 ＆ 雑穀 炊飯マスター</p>
         </div>
     </footer>
 
+    <!-- 計算・コントロール用 JavaScript -->
     <script>
-        // DOM要素の取得
+        // 設定用DOM
         const targetCupsInput = document.getElementById('targetCupsInput');
         const targetCupsRange = document.getElementById('targetCupsRange');
         const ratioRange = document.getElementById('ratioRange');
-        const customRatioVal = document.getElementById('customRatioVal');
-        const bowlCount = document.getElementById('bowlCount');
+        const ratioValueLabel = document.getElementById('ratioValueLabel');
+        const ratioTitle = document.getElementById('ratioTitle');
+        const ratioPresetsContainer = document.getElementById('ratioPresetsContainer');
 
-        // 結果表示用
-        const resRiceG = document.getElementById('resRiceG');
-        const resRiceCup = document.getElementById('resRiceCup');
-        const resBarleyG = document.getElementById('resBarleyG');
-        const resBarleySpoon = document.getElementById('resBarleySpoon');
-        const resTotalWater = document.getElementById('resTotalWater');
-        const resWaterDetail = document.getElementById('resWaterDetail');
-        const recipeSummary = document.getElementById('recipeSummary');
+        // 結果用DOM
+        const recipeModeLabel = document.getElementById('recipeModeLabel');
+        const outRiceG = document.getElementById('outRiceG');
+        const outRiceCup = document.getElementById('outRiceCup');
+        const outGrainTitle = document.getElementById('outGrainTitle');
+        const outGrainG = document.getElementById('outGrainG');
+        const outGrainMeasure = document.getElementById('outGrainMeasure');
+        const outTotalWater = document.getElementById('outTotalWater');
+        const outWaterDetail = document.getElementById('outWaterDetail');
 
-        // 手順表示用
-        const gaugeRiceCup = document.getElementById('gaugeRiceCup');
-        const gaugeBarleyG = document.getElementById('gaugeBarleyG');
-        const gaugeAddWater = document.getElementById('gaugeAddWater');
-        const scaleRice = document.getElementById('scaleRice');
-        const scaleBarley = document.getElementById('scaleBarley');
-        const scaleWater = document.getElementById('scaleWater');
+        // 炊飯器ビジュアル用DOM
+        const kettleWaterLevel = document.getElementById('kettleWaterLevel');
+        const kettleLabel = document.getElementById('kettleLabel');
+        const step1Cup = document.getElementById('step1Cup');
+        const step3AddWater = document.getElementById('step3AddWater');
 
-        // プリセットボタン
-        const btn15 = document.getElementById('btn15');
-        const btn30 = document.getElementById('btn30');
-        const btn50 = document.getElementById('btn50');
+        // スケールガイド用DOM
+        const scaleStep1 = document.getElementById('scaleStep1');
+        const scaleStep2 = document.getElementById('scaleStep2');
+        const scaleStep3 = document.getElementById('scaleStep3');
 
-        // お米・もち麦の定義重量定数
-        const RICE_CUP_WEIGHT = 150; // 米1合 = 150g
-        const BARLEY_SPOON_WEIGHT = 15; // もち麦大さじ1杯 ≒ 15g (はくばく基準)
+        // アドバイスカードDOM
+        const dynamicAdviceCard = document.getElementById('dynamicAdviceCard');
 
-        // 計算と描画のコア処理
-        function runCalculation() {
-            let targetCups = parseFloat(targetCupsInput.value);
-            if (isNaN(targetCups) || targetCups <= 0) targetCups = 1;
+        // 状態管理
+        let currentGrainType = 'barley'; // 'barley', 'zakkoku', 'mix'
 
-            // 選択されている割合（x割ごはん）を取得
-            const ratioValue = parseFloat(ratioRange.value); // 例: 3.0(割)
+        // 炊き上がり合数のクイック変更
+        function setTargetCups(cups) {
+            targetCupsInput.value = cups.toFixed(1);
+            targetCupsRange.value = cups;
             
-            // はくばくの基準換算比率を数式化
-            // 割合(割)をベースに、米1合（150g）に対するもち麦の割合を算出
-            // 1.5割: 米1合に対して麦25g、炊き上がり1.2合
-            // 3.0割: 米1合に対して麦50g、炊き上がり1.4合
-            // 5.0割: 米1合に対して麦100g、炊き上がり1.85合
-            // これらを補間する計算モデルを作成
-            
-            let barleyPerRiceCup = 50; // デフォルト (3割のとき、米1合あたり50g)
-            let finishedCupsFactor = 1.4; // 米1合から出来上がる全体合数の係数
-
-            if (ratioValue <= 1.5) {
-                // 1.5割以下への線形補間
-                const t = ratioValue / 1.5;
-                barleyPerRiceCup = t * 25;
-                finishedCupsFactor = 1.0 + (t * 0.2);
-            } else if (ratioValue <= 3.0) {
-                // 1.5割〜3割
-                const t = (ratioValue - 1.5) / 1.5;
-                barleyPerRiceCup = 25 + (t * 25);
-                finishedCupsFactor = 1.2 + (t * 0.2);
-            } else if (ratioValue <= 5.0) {
-                // 3割〜5割
-                const t = (ratioValue - 3.0) / 2.0;
-                barleyPerRiceCup = 50 + (t * 50);
-                finishedCupsFactor = 1.4 + (t * 0.45);
-            } else {
-                // 5割以上
-                const t = (ratioValue - 5.0) / 3.0; // 8割まで
-                barleyPerRiceCup = 100 + (t * 150); // 8割のとき250g
-                finishedCupsFactor = 1.85 + (t * 1.15); // 8割のとき3.0合
+            // クイックボタンのアクティブ色切り替え
+            ['quick3', 'quick4', 'quick5'].forEach(id => {
+                document.getElementById(id).className = "py-2 px-3 rounded-xl border border-slate-200 text-xs font-bold transition-all text-slate-600 hover:bg-slate-50";
+            });
+            if (cups === 3.0) {
+                document.getElementById('quick3').className = "py-2 px-3 rounded-xl border border-amber-500 bg-amber-50 text-xs font-bold transition-all text-amber-700";
+            } else if (cups === 4.0) {
+                document.getElementById('quick4').className = "py-2 px-3 rounded-xl border border-amber-500 bg-amber-50 text-xs font-bold transition-all text-amber-700";
+            } else if (cups === 5.0) {
+                document.getElementById('quick5').className = "py-2 px-3 rounded-xl border border-amber-500 bg-amber-50 text-xs font-bold transition-all text-amber-700";
             }
 
-            // 必要なお米の合数の逆算
-            const requiredRiceCups = targetCups / finishedCupsFactor;
-            const requiredRiceG = requiredRiceCups * RICE_CUP_WEIGHT;
-            
-            // 必要麦のグラム数
-            const requiredBarleyG = requiredRiceCups * barleyPerRiceCup;
-
-            // 水の計算 (白米用: 米の重さの1.2倍 ＋ 麦用: 麦の重さの2.0倍)
-            const riceWater = requiredRiceG * 1.2;
-            const barleyWater = requiredBarleyG * 2.0;
-            const totalWater = riceWater + barleyWater;
-
-            // UIへの出力更新
-            // 1. 概要
-            bowlCount.textContent = Math.round(targetCups * 2.5); // 1合あたり茶碗2.5杯で計算
-            customRatioVal.textContent = `${ratioValue.toFixed(1)}割ごはん`;
-            recipeSummary.textContent = `${ratioValue.toFixed(1)}割麦飯 / ${targetCups.toFixed(1)}合分`;
-
-            // 2. 計量レシピ
-            resRiceG.innerHTML = `${Math.round(requiredRiceG)}<span class="text-xs font-normal"> g</span>`;
-            resRiceCup.textContent = `(${requiredRiceCups.toFixed(2)} 合)`;
-            
-            resBarleyG.innerHTML = `${Math.round(requiredBarleyG)}<span class="text-xs font-normal"> g</span>`;
-            const barleySpoons = (requiredBarleyG / BARLEY_SPOON_WEIGHT).toFixed(1);
-            resBarleySpoon.textContent = `(大さじ約 ${barleySpoons} 杯)`;
-
-            resTotalWater.innerHTML = `${Math.round(totalWater)}<span class="text-xs font-normal"> ml</span>`;
-            resWaterDetail.textContent = `米用${Math.round(riceWater)} + 麦用${Math.round(barleyWater)}ml`;
-
-            // 3. 手順A（内釜目盛り）への反映
-            gaugeRiceCup.textContent = requiredRiceCups.toFixed(1);
-            gaugeBarleyG.textContent = Math.round(requiredBarleyG);
-            gaugeAddWater.textContent = Math.round(barleyWater);
-
-            // 4. 手順B（スケール計量）への反映
-            scaleRice.textContent = Math.round(requiredRiceG);
-            scaleBarley.textContent = Math.round(requiredBarleyG);
-            scaleWater.textContent = Math.round(totalWater);
-
-            // プリセットボタンのアクティブ表示切替
-            updatePresetActiveStates(ratioValue);
+            runCalculation();
         }
 
-        // プリセット切替
+        // 穀物タイプの切り替え
+        function setGrainType(type) {
+            currentGrainType = type;
+
+            // ボタンクラスの調整
+            ['typeBarley', 'typeZakkoku', 'typeMix'].forEach(id => {
+                document.getElementById(id).className = "py-2 rounded-lg text-center transition-all hover:bg-slate-200/50 flex flex-col items-center";
+            });
+
+            if (type === 'barley') {
+                document.getElementById('typeBarley').className = "py-2 rounded-lg text-center transition-all bg-white text-emerald-600 shadow-sm flex flex-col items-center border border-emerald-100";
+                ratioTitle.textContent = "もち麦の配合割合";
+            } else if (type === 'zakkoku') {
+                document.getElementById('typeZakkoku').className = "py-2 rounded-lg text-center transition-all bg-white text-orange-600 shadow-sm flex flex-col items-center border border-orange-100";
+                ratioTitle.textContent = "雑穀米の配合割合";
+            } else if (type === 'mix') {
+                document.getElementById('typeMix').className = "py-2 rounded-lg text-center transition-all bg-white text-indigo-600 shadow-sm flex flex-col items-center border border-indigo-100";
+                ratioTitle.textContent = "もち麦＆雑穀の合計配合割合";
+            }
+
+            renderPresets();
+            runCalculation();
+        }
+
+        // 配合プリセットボタンの配置
+        function renderPresets() {
+            if (currentGrainType === 'barley') {
+                ratioPresetsContainer.innerHTML = `
+                    <button onclick="setRatioPreset(1.5)" class="ratio-preset-btn py-1.5 rounded-lg border border-slate-200 text-[10px] font-bold text-slate-600 hover:bg-slate-50">1.5割 (あっさり)</button>
+                    <button onclick="setRatioPreset(3.0)" class="ratio-preset-btn py-1.5 rounded-lg border border-emerald-500 bg-emerald-50 text-[10px] font-bold text-emerald-700 shadow-sm">3割 (定番)</button>
+                    <button onclick="setRatioPreset(5.0)" class="ratio-preset-btn py-1.5 rounded-lg border border-slate-200 text-[10px] font-bold text-slate-600 hover:bg-slate-50">5割 (ぎっしり)</button>
+                `;
+            } else if (currentGrainType === 'zakkoku') {
+                ratioPresetsContainer.innerHTML = `
+                    <button onclick="setRatioPreset(1.0)" class="ratio-preset-btn py-1.5 rounded-lg border border-slate-200 text-[10px] font-bold text-slate-600 hover:bg-slate-50">大さじ1 (軽め)</button>
+                    <button onclick="setRatioPreset(2.0)" class="ratio-preset-btn py-1.5 rounded-lg border border-orange-500 bg-orange-50 text-[10px] font-bold text-orange-700 shadow-sm">30gパック(標準)</button>
+                    <button onclick="setRatioPreset(4.0)" class="ratio-preset-btn py-1.5 rounded-lg border border-slate-200 text-[10px] font-bold text-slate-600 hover:bg-slate-50">2パック分(濃厚)</button>
+                `;
+            } else { // mix
+                ratioPresetsContainer.innerHTML = `
+                    <button onclick="setRatioPreset(2.0)" class="ratio-preset-btn py-1.5 rounded-lg border border-slate-200 text-[10px] font-bold text-slate-600 hover:bg-slate-50">軽めブレンド</button>
+                    <button onclick="setRatioPreset(4.0)" class="ratio-preset-btn py-1.5 rounded-lg border border-indigo-500 bg-indigo-50 text-[10px] font-bold text-indigo-700 shadow-sm">定番ブレンド</button>
+                    <button onclick="setRatioPreset(6.0)" class="ratio-preset-btn py-1.5 rounded-lg border border-slate-200 text-[10px] font-bold text-slate-600 hover:bg-slate-50">贅沢ヘルシー</button>
+                `;
+            }
+        }
+
+        // 配合スライダーまたはプリセットクリック
         function setRatioPreset(val) {
             ratioRange.value = val;
             runCalculation();
         }
 
-        function updatePresetActiveStates(val) {
-            // 一旦全てリセット
-            btn15.className = "py-2.5 rounded-lg text-center transition-all hover:bg-slate-200/50";
-            btn30.className = "py-2.5 rounded-lg text-center transition-all hover:bg-slate-200/50";
-            btn50.className = "py-2.5 rounded-lg text-center transition-all hover:bg-slate-200/50";
-
-            // 一致するものにクラス追加
-            if (val === 1.5) {
-                btn15.className = "py-2.5 rounded-lg text-center transition-all bg-white text-emerald-600 shadow-sm";
-            } else if (val === 3.0) {
-                btn30.className = "py-2.5 rounded-lg text-center transition-all bg-white text-emerald-600 shadow-sm";
-            } else if (val === 5.0) {
-                btn50.className = "py-2.5 rounded-lg text-center transition-all bg-white text-emerald-600 shadow-sm";
-            }
+        // プリセットボタンのアクティブクラス更新
+        function updateActivePresetHighlight(val) {
+            const buttons = ratioPresetsContainer.querySelectorAll('.ratio-preset-btn');
+            buttons.forEach((btn, idx) => {
+                btn.className = "ratio-preset-btn py-1.5 rounded-lg border border-slate-200 text-[10px] font-bold text-slate-600 hover:bg-slate-50";
+                
+                if (currentGrainType === 'barley') {
+                    if (val === 1.5 && idx === 0) btn.className = "ratio-preset-btn py-1.5 rounded-lg border border-emerald-500 bg-emerald-50 text-[10px] font-bold text-emerald-700 shadow-sm";
+                    if (val === 3.0 && idx === 1) btn.className = "ratio-preset-btn py-1.5 rounded-lg border border-emerald-500 bg-emerald-50 text-[10px] font-bold text-emerald-700 shadow-sm";
+                    if (val === 5.0 && idx === 2) btn.className = "ratio-preset-btn py-1.5 rounded-lg border border-emerald-500 bg-emerald-50 text-[10px] font-bold text-emerald-700 shadow-sm";
+                } else if (currentGrainType === 'zakkoku') {
+                    if (val === 1.0 && idx === 0) btn.className = "ratio-preset-btn py-1.5 rounded-lg border border-orange-500 bg-orange-50 text-[10px] font-bold text-orange-700 shadow-sm";
+                    if (val === 2.0 && idx === 1) btn.className = "ratio-preset-btn py-1.5 rounded-lg border border-orange-500 bg-orange-50 text-[10px] font-bold text-orange-700 shadow-sm";
+                    if (val === 4.0 && idx === 2) btn.className = "ratio-preset-btn py-1.5 rounded-lg border border-orange-500 bg-orange-50 text-[10px] font-bold text-orange-700 shadow-sm";
+                } else {
+                    if (val === 2.0 && idx === 0) btn.className = "ratio-preset-btn py-1.5 rounded-lg border border-indigo-500 bg-indigo-50 text-[10px] font-bold text-indigo-700 shadow-sm";
+                    if (val === 4.0 && idx === 1) btn.className = "ratio-preset-btn py-1.5 rounded-lg border border-indigo-500 bg-indigo-50 text-[10px] font-bold text-indigo-700 shadow-sm";
+                    if (val === 6.0 && idx === 2) btn.className = "ratio-preset-btn py-1.5 rounded-lg border border-indigo-500 bg-indigo-50 text-[10px] font-bold text-indigo-700 shadow-sm";
+                }
+            });
         }
 
-        // イベントリスナーの接続
+        // コア計算ロジック
+        function runCalculation() {
+            let targetCups = parseFloat(targetCupsInput.value);
+            if (isNaN(targetCups) || targetCups <= 0) targetCups = 1.0;
+
+            const ratioVal = parseFloat(ratioRange.value);
+            const R = ratioVal / 10; 
+            
+            // 逆算
+            const requiredRiceG = targetCups / ((1 / 150) + (R / 110));
+            const requiredGrainG = requiredRiceG * R;
+            const riceCups = requiredRiceG / 150;
+
+            // 水の計算
+            const waterForRice = requiredRiceG * 1.2;
+            const waterForGrain = requiredGrainG * 2.0;
+            const totalWater = waterForRice + waterForGrain;
+
+            // 丸め処理
+            const finalRiceG = Math.round(requiredRiceG);
+            const finalGrainG = Math.round(requiredGrainG);
+            const finalTotalWater = Math.round(totalWater);
+            const finalAddWater = Math.round(waterForGrain);
+
+            // UI反映
+            ratioValueLabel.textContent = `${ratioVal.toFixed(1)}割ブレンド`;
+            outRiceG.innerHTML = `${finalRiceG}<span class="text-xs font-normal"> g</span>`;
+            outRiceCup.textContent = `(約 ${riceCups.toFixed(1)} 合)`;
+
+            if (currentGrainType === 'barley') {
+                recipeModeLabel.textContent = `もち麦ごはん / ${targetCups.toFixed(1)}合炊き`;
+                outGrainTitle.textContent = `② もち麦`;
+                const barleySpoons = (finalGrainG / 15).toFixed(1);
+                outGrainMeasure.textContent = `(大さじ約 ${barleySpoons} 杯)`;
+            } else if (currentGrainType === 'zakkoku') {
+                recipeModeLabel.textContent = `雑穀ごはん / ${targetCups.toFixed(1)}合炊き`;
+                outGrainTitle.textContent = `② 雑穀米`;
+                const packet30g = (finalGrainG / 30).toFixed(1);
+                outGrainMeasure.textContent = `(市販パック約 ${packet30g} 袋)`;
+            } else {
+                recipeModeLabel.textContent = `もち麦＋雑穀ミックス / ${targetCups.toFixed(1)}合炊き`;
+                outGrainTitle.textContent = `② 麦・雑穀ミックス`;
+                outGrainMeasure.textContent = `(お好みの割合で合計 ${finalGrainG}g)`;
+            }
+
+            outGrainG.innerHTML = `${finalGrainG}<span class="text-xs font-normal"> g</span>`;
+            outTotalWater.innerHTML = `${finalTotalWater}<span class="text-xs font-normal"> ml</span>`;
+            outWaterDetail.textContent = `お米用${Math.round(waterForRice)} ＋ 穀物用${finalAddWater}ml`;
+
+            // 目盛りガイド
+            step1Cup.textContent = `${riceCups.toFixed(1)}合`;
+            step3AddWater.textContent = `${finalAddWater} ml`;
+            
+            // ビジュアル水位
+            kettleLabel.innerHTML = `白米の線<br>${riceCups.toFixed(1)}合`;
+            const percent = Math.min(Math.max((riceCups / 5.0) * 80, 20), 85);
+            kettleWaterLevel.style.height = `${percent}%`;
+
+            // キッチンスケール連続追加計量ガイド
+            scaleStep1.textContent = `${finalRiceG} g`;
+            scaleStep2.textContent = `${finalGrainG} g`;
+            scaleStep3.textContent = `${finalTotalWater} g`;
+
+            updateDynamicAdvice(ratioVal);
+            updateActivePresetHighlight(ratioVal);
+        }
+
+        // 動的アドバイス更新
+        function updateDynamicAdvice(ratio) {
+            dynamicAdviceCard.className = "rounded-2xl p-4 border flex items-start gap-3 transition-all duration-300";
+            
+            let emoji = "💡";
+            let title = "";
+            let body = "";
+            
+            if (currentGrainType === 'barley') {
+                dynamicAdviceCard.classList.add("bg-emerald-50", "border-emerald-100", "text-emerald-900");
+                emoji = "🌾";
+                title = "もち麦のおいしい炊き方";
+                if (ratio < 2.0) {
+                    body = "ほんのりプチッと香ばしい入門比率です。吸水時間は30分で十分ふっくらします。";
+                } else if (ratio >= 2.0 && ratio <= 4.0) {
+                    body = "もち麦の一番おいしい黄金バランス（3割）です！お腹スッキリをサポートする食物繊維が白米の何倍も摂れます。炊飯前に45分ほど浸水させるのがベストです。";
+                } else {
+                    body = "かなりの高配合です！プチプチした噛み応えが抜群。カレーやサラダに合わせると抜群のおいしさです。1時間のしっかり浸水が芯を残さない秘訣です。";
+                }
+            } else if (currentGrainType === 'zakkoku') {
+                dynamicAdviceCard.classList.add("bg-orange-50", "border-orange-100", "text-orange-900");
+                emoji = "🍂";
+                title = "雑穀米をさらに引き立てるコツ";
+                if (ratio < 1.5) {
+                    body = "白米の見た目を邪魔せず栄養価をアップさせる上品な配合です。毎日の食卓に自然に取り入れられます。";
+                } else if (ratio >= 1.5 && ratio <= 3.0) {
+                    body = "はくばく公式の標準（1合あたり20g〜30g）の雑穀ごはんになります！赤米や黒米のポリフェノールでほんのり桜色に炊き上がり、噛むほどに旨味が広がります。少量の「塩」をひとつまみ加えて炊くと甘みが引き立ちます。";
+                } else {
+                    body = "おかず要らずの贅沢なもっちり雑穀米になります！おにぎりやお弁当に最適です。冷めてもモチモチ感が維持されるため、ストックにも最適です。";
+                }
+            } else {
+                dynamicAdviceCard.classList.add("bg-indigo-50", "border-indigo-100", "text-indigo-900");
+                emoji = "🥗";
+                title = "贅沢ダブルミックスのアドバイス";
+                body = "もち麦のぷちぷち食感と、十六穀などの彩り・大地の豊かな風味が両方手に入る究極のごはんです。浸水は1時間しっかりとることで、あらゆる雑穀が調和してふっくら炊き上がります。";
+            }
+
+            dynamicAdviceCard.innerHTML = `
+                <span class="text-2xl mt-0.5 shrink-0">${emoji}</span>
+                <div class="space-y-1 text-xs leading-relaxed">
+                    <p class="font-bold">${title}</p>
+                    <p>${body}</p>
+                </div>
+            `;
+        }
+
+        // イベントバインディング
         targetCupsRange.addEventListener('input', (e) => {
-            targetCupsInput.value = e.target.value;
+            targetCupsInput.value = parseFloat(e.target.value).toFixed(1);
             runCalculation();
         });
 
         targetCupsInput.addEventListener('input', (e) => {
             let val = parseFloat(e.target.value);
-            if (isNaN(val)) val = 0.5;
-            targetCupsRange.value = Math.min(Math.max(val, 0.5), 6.0);
+            if (isNaN(val)) val = 1.0;
+            targetCupsRange.value = Math.min(Math.max(val, 1.0), 6.0);
             runCalculation();
         });
 
@@ -349,9 +518,26 @@
             runCalculation();
         });
 
-        // ページ読み込み時の初期表示
+        // ページロード時の初期化 ＆ サービスワーカー（PWA）登録
         window.onload = function() {
-            runCalculation();
+            renderPresets();
+            setTargetCups(3.0); // 初期値：3合をアクティブに
+
+            // サービスワーカーの登録
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.register('./sw.js')
+                .then((reg) => {
+                    console.log('Service Worker 登録成功:', reg.scope);
+                    const pwaBadge = document.getElementById('pwaBadge');
+                    if (pwaBadge) {
+                        pwaBadge.textContent = "オフライン対応済";
+                        pwaBadge.className = "text-[9px] bg-emerald-700/40 px-2.5 py-1 rounded-full border border-emerald-400/30 font-medium";
+                    }
+                })
+                .catch((err) => {
+                    console.error('Service Worker 登録失敗:', err);
+                });
+            }
         };
     </script>
 </body>
